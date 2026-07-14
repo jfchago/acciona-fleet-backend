@@ -1,4 +1,8 @@
 spring:
+  datasource:
+    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=AccionaFleet;integratedSecurity=true;authenticationScheme=NativeAuthentication;encrypt=false;trustServerCertificate=true}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: none
