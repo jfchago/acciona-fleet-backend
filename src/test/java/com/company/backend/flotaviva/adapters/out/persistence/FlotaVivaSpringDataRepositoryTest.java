@@ -21,7 +21,7 @@ class FlotaVivaSpringDataRepositoryTest {
     @BeforeEach
     void insertFixture() {
         entityManager.createNativeQuery("""
-                insert into dbo.v_flota_viva (id, "Country", "Matricula", "Marca", "Modelo", "Sociedad", "DivisionGroup", "CO2")
+                insert into dbo."V_FlotaViva" (id, "Country", "Matricula", "Marca", "Modelo", "Sociedad", "DivisionGroup", "CO2")
                 values (1, 'ES', 'TEST-001', 'VOLVO', 'XC90', 'ACCIONA', 'FLEET', 30),
                        (2, 'ES', 'TEST-002', 'RENAULT', 'ARKANA', 'ACCIONA', 'FLEET', 107),
                        (3, 'PT', 'TEST-003', 'VOLVO', 'XC60', 'ACCIONA', 'FLEET', 20)

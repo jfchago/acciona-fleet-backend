@@ -11,7 +11,7 @@ import org.hibernate.annotations.Immutable;
 
 @Entity
 @Immutable
-@Table(name = "V_FlotaViva", schema = "dbo")
+@Table(name = "\"V_FlotaViva\"", schema = "dbo")
 class FlotaVivaJpaEntity {
     @Id private Integer id;
     @Column(name = "\"PetitionDate\"") private LocalDateTime petitionDate;
