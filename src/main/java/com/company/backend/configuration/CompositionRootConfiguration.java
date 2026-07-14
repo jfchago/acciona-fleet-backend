@@ -1,0 +1,22 @@
+package com.company.backend.configuration;
+
+import com.company.backend.shared.application.port.in.GetServiceStatusUseCase;
+import com.company.backend.shared.application.service.DefaultGetServiceStatusService;
+import com.company.backend.example.application.port.out.ExamplePersistencePort;
+import com.company.backend.example.application.service.DefaultExampleService;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class CompositionRootConfiguration {
+
+    @Bean
+    GetServiceStatusUseCase getServiceStatusUseCase() {
+        return new DefaultGetServiceStatusService();
+    }
+
+    @Bean
+    DefaultExampleService exampleService(ExamplePersistencePort examplePersistencePort) {
+        return new DefaultExampleService(examplePersistencePort);
+    }
+}
