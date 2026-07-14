@@ -24,3 +24,35 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/examples -Conte
 ## Tests
 
 `mvn test` uses an in-memory H2 database and does not require SQL Server or Docker. H2 is test-only; production migrations target SQL Server and use SQL Server-compatible `uniqueidentifier` and `datetimeoffset` types.
+# Backend
+
+## Database profiles
+
+The default `local` profile connects to the SQL Server instance installed on
+Windows:
+
+- Server: `localhost:1433`
+- Database: `AccionaFleet`
+- Authentication: Windows integrated authentication for the logged-in OS user
+
+The Microsoft JDBC native authentication library must be available on the
+Windows `PATH`:
+`mssql-jdbc_auth-<driver-version>-x64.dll`.
+
+Run locally with:
+
+```powershell
+mvn spring-boot:run
+```
+
+For a disposable SQL Server Express instance, start the existing
+`docker-compose.yml` and run with the `docker` profile:
+
+```powershell
+$env:MSSQL_SA_PASSWORD = "A_strong_password_123!"
+docker compose up -d
+mvn spring-boot:run -Dspring-boot.run.profiles=docker
+```
+
+The Docker SQL Server is exposed on `localhost:1434` so it does not conflict
+with the Windows SQL Server on port `1433`.

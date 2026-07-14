@@ -16,7 +16,7 @@ spring:
     hibernate:
       ddl-auto: validate
   flyway:
-    enabled: true
+    enabled: false
     locations: classpath:db/migration
 
 server:
