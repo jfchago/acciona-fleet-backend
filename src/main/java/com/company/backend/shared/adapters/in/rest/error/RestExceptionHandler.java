@@ -5,9 +5,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class RestExceptionHandler {
+
+    @ExceptionHandler({ConstraintViolationException.class, MethodArgumentTypeMismatchException.class,
+            IllegalArgumentException.class})
+    ProblemDetail handleBadRequest(Exception exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+        problem.setTitle("Invalid request parameters");
+        return problem;
+    }
 
     @ExceptionHandler(ExampleNotFoundException.class)
     ProblemDetail handleNotFound(ExampleNotFoundException exception) {

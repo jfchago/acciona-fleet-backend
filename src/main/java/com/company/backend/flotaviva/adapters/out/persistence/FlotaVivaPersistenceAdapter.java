@@ -21,7 +21,7 @@ public class FlotaVivaPersistenceAdapter implements FlotaVivaPersistencePort {
     @Override
     public Page findPage(int page, int size, String sort, String country, String filter) {
         var params = params(country, filter);
-        String order = SORT_COLUMNS.getOrDefault(sort == null ? "matricula" : sort, "Matricula");
+        String order = orderBy(sort);
         String sql = "SELECT " + COLUMNS + " FROM dbo.V_FlotaViva WHERE Country = :country" + filterClause() + " ORDER BY " + order + " OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY";
         params.addValue("offset", page * size).addValue("size", size);
         return new Page(jdbc.query(sql, params, (rs, n) -> row(rs)), count(params));
@@ -30,8 +30,12 @@ public class FlotaVivaPersistenceAdapter implements FlotaVivaPersistencePort {
     @Override
     public List<FlotaVivaRow> findAll(String sort, String country, String filter) {
         var params = params(country, filter);
-        String order = SORT_COLUMNS.getOrDefault(sort == null ? "matricula" : sort, "Matricula");
-        return jdbc.query("SELECT " + COLUMNS + " FROM dbo.V_FlotaViva WHERE Country = :country" + filterClause() + " ORDER BY " + order, params, (rs, n) -> row(rs));
+        return jdbc.query("SELECT " + COLUMNS + " FROM dbo.V_FlotaViva WHERE Country = :country" + filterClause() + " ORDER BY " + orderBy(sort), params, (rs, n) -> row(rs));
+    }
+
+    private static String orderBy(String sort) {
+        String column = SORT_COLUMNS.getOrDefault(sort == null ? "matricula" : sort, "Matricula");
+        return "id".equals(column) ? column : column + ", id";
     }
 
     private long count(MapSqlParameterSource params) { return jdbc.queryForObject("SELECT COUNT_BIG(*) FROM dbo.V_FlotaViva WHERE Country = :country" + filterClause(), params, Long.class); }

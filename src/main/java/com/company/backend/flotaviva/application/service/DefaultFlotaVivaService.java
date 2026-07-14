@@ -17,6 +17,7 @@ import java.util.zip.ZipOutputStream;
 import org.springframework.transaction.annotation.Transactional;
 
 public class DefaultFlotaVivaService implements GetFlotaVivaUseCase, ExportFlotaVivaUseCase {
+    private static final java.util.Set<String> SORTS = java.util.Set.of("matricula", "id", "petitionDate", "sociedad", "marca", "modelo");
     private static final String CSV = "text/csv; charset=UTF-8";
     private static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     private final FlotaVivaPersistencePort persistence;
@@ -35,6 +36,8 @@ public class DefaultFlotaVivaService implements GetFlotaVivaUseCase, ExportFlota
     @Transactional(readOnly = true)
     public Result get(int page, int size, String sort, String country, String filter) {
         if (page < 0 || size < 1 || size > 500) throw new IllegalArgumentException("Invalid pagination");
+        validateSort(sort);
+        validateFilter(filter);
         var result = persistence.findPage(page, size, sort, defaultCountry(country), normalize(filter));
         int totalPages = (int) Math.ceil((double) result.totalElements() / size);
         return new Result(result.items(), page, size, result.totalElements(), totalPages,
@@ -45,11 +48,16 @@ public class DefaultFlotaVivaService implements GetFlotaVivaUseCase, ExportFlota
     @Transactional(readOnly = true)
     public Export export(String format, String sort, String country, String filter) {
         String normalizedFormat = format == null ? "" : format.toLowerCase(Locale.ROOT);
+        if (!normalizedFormat.equals("csv") && !normalizedFormat.equals("xlsx")) {
+            throw new IllegalArgumentException("format must be csv or xlsx");
+        }
+        validateSort(sort);
+        validateFilter(filter);
         List<FlotaVivaRow> rows = persistence.findAll(sort, defaultCountry(country), normalize(filter));
         return switch (normalizedFormat) {
             case "csv" -> new Export(csv(rows), CSV, "flota-viva.csv");
             case "xlsx" -> new Export(xlsx(rows), XLSX, "flota-viva.xlsx");
-            default -> throw new IllegalArgumentException("format must be csv or xlsx");
+            default -> throw new IllegalStateException("Unsupported export format");
         };
     }
 
@@ -57,8 +65,14 @@ public class DefaultFlotaVivaService implements GetFlotaVivaUseCase, ExportFlota
         return new GetFlotaVivaUseCase.Freshness(OffsetDateTime.now(clock).withOffsetSameInstant(ZoneOffset.UTC), "CURRENT");
     }
 
-    private static String defaultCountry(String country) { return country == null || country.isBlank() ? "ES" : country.trim(); }
+    private static String defaultCountry(String country) { return country == null || country.isBlank() ? "ES" : country.trim().toUpperCase(Locale.ROOT); }
     private static String normalize(String filter) { return filter == null ? "" : filter.trim(); }
+    private static void validateSort(String sort) {
+        if (sort != null && !SORTS.contains(sort)) throw new IllegalArgumentException("Unsupported sort");
+    }
+    private static void validateFilter(String filter) {
+        if (filter != null && filter.length() > 100) throw new IllegalArgumentException("filter must not exceed 100 characters");
+    }
 
     private static byte[] csv(List<FlotaVivaRow> rows) {
         var out = new StringBuilder("\uFEFF").append(String.join(",", FlotaVivaRow.HEADERS)).append('\n');

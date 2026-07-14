@@ -2,6 +2,7 @@ package com.company.backend.flotaviva.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.company.backend.flotaviva.application.port.out.FlotaVivaPersistencePort;
 import com.company.backend.flotaviva.domain.FlotaVivaRow;
@@ -42,6 +43,33 @@ class DefaultFlotaVivaServiceTest {
         assertThat(result.contentType()).startsWith("text/csv");
         assertThat(new String(result.content(), java.nio.charset.StandardCharsets.UTF_8))
                 .contains("Matricula").contains("\"ES,001\"");
+    }
+
+    @Test
+    void export_rejectsUnsupportedFormatBeforeReadingRows() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.export("pdf", "matricula", "ES", ""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("format must be csv or xlsx");
+
+        verifyNoInteractions(persistence);
+    }
+
+    @Test
+    void get_rejectsUnsupportedSortBeforeQueryingRows() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.get(0, 50, "driverName", "ES", ""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Unsupported sort");
+
+        verifyNoInteractions(persistence);
+    }
+
+    @Test
+    void get_rejectsOverlongFilterBeforeQueryingRows() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.get(0, 50, "matricula", "ES", "x".repeat(101)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("filter must not exceed 100 characters");
+
+        verifyNoInteractions(persistence);
     }
 
     private static FlotaVivaRow row(String matricula) {
