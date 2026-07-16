@@ -5,6 +5,9 @@ spring:
     password:
     driver-class-name: org.h2.Driver
   jpa:
+    properties:
+      hibernate:
+        physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     hibernate:
       ddl-auto: create-drop
   flyway:

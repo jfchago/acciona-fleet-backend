@@ -1,0 +1,10 @@
+{
+  "activeIds": ["00000000-0000-0000-0000-000000000001"],
+  "allIds": ["00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002"],
+  "rules": {
+    "registrationAfterContractStart": true,
+    "cancellationRequiredForStates": [14, 25],
+    "cardLastFourDigits": "exactly four digits",
+    "retirement": "reversible and never physical delete"
+  }
+}

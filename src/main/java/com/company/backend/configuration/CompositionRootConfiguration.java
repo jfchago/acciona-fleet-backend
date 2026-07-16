@@ -8,6 +8,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import com.company.backend.flotaviva.application.service.DefaultFlotaVivaService;
 import com.company.backend.flotaviva.application.port.out.FlotaVivaPersistencePort;
+import com.company.backend.carfleetrequests.application.port.in.CarFleetRequestUseCases;
+import com.company.backend.carfleetrequests.application.port.out.*;
+import com.company.backend.carfleetrequests.application.service.DefaultCarFleetRequestService;
 
 @Configuration
 public class CompositionRootConfiguration {
@@ -25,5 +28,12 @@ public class CompositionRootConfiguration {
     @Bean(name = {"flotaVivaService", "getFlotaVivaUseCase", "exportFlotaVivaUseCase"})
     DefaultFlotaVivaService flotaVivaService(FlotaVivaPersistencePort persistence) {
         return new DefaultFlotaVivaService(persistence);
+    }
+
+    @Bean
+    CarFleetRequestUseCases carFleetRequestService(CarFleetRequestReadPort reads, CarFleetRequestWritePort writes,
+                                                    CarFleetRequestAuditPort audits, CurrentUserPort users,
+                                                    CarFleetRequestAuthorizationPort authorization) {
+        return new DefaultCarFleetRequestService(reads, writes, audits, users, authorization);
     }
 }
