@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import com.company.backend.carfleetrequests.application.service.CarFleetRequestExceptions;
@@ -13,9 +15,12 @@ import com.company.backend.carfleetrequests.application.service.CarFleetRequestE
 public class RestExceptionHandler {
 
     @ExceptionHandler({ConstraintViolationException.class, MethodArgumentTypeMismatchException.class,
-            IllegalArgumentException.class})
+            MethodArgumentNotValidException.class, HttpMessageNotReadableException.class, IllegalArgumentException.class})
     ProblemDetail handleBadRequest(Exception exception) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+        String detail = exception instanceof MethodArgumentNotValidException invalid
+                ? invalid.getBindingResult().getFieldErrors().stream().map(e -> e.getField()+": "+e.getDefaultMessage()).reduce((a,b)->a+", "+b).orElse("Invalid request body")
+                : exception instanceof HttpMessageNotReadableException ? "Request body is malformed or contains an invalid field type" : exception.getMessage();
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
         problem.setTitle("Invalid request parameters");
         return problem;
     }

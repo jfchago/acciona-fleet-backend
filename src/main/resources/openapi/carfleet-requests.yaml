@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  title: CarFleetRequests API
+  version: 1.0.0
+paths:
+  /api/v1/car-fleet-requests:
+    get:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Visibility' }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Size' }
+        - { $ref: '#/components/parameters/Filter' }
+      responses:
+        '200': { description: Active or ALL legacy requests, content: { application/json: { schema: { $ref: '#/components/schemas/PageResponse' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/car-fleet-requests/{id}:
+    get:
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Visibility' }]
+      responses:
+        '200': { description: Request, headers: { ETag: { $ref: '#/components/headers/ETag' } }, content: { application/json: { schema: { $ref: '#/components/schemas/CarFleetRequest' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      security: [{ bearerAuth: [CARFLEET_REQUESTS_UPDATE] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/IfMatch' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CarFleetRequestPatch' } } } }
+      responses:
+        '200': { description: Updated request with optional warnings, headers: { ETag: { $ref: '#/components/headers/ETag' } }, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateResponse' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Validation' }
+  /api/v1/car-fleet-requests/{id}/retire:
+    post:
+      security: [{ bearerAuth: [CARFLEET_REQUESTS_RETIRE] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/IfMatch' }]
+      responses: { '200': { description: Retired request, headers: { ETag: { $ref: '#/components/headers/ETag' } } }, '409': { $ref: '#/components/responses/Conflict' }, '422': { $ref: '#/components/responses/Validation' } }
+  /api/v1/car-fleet-requests/{id}/reinstate:
+    post:
+      security: [{ bearerAuth: [CARFLEET_REQUESTS_REINSTATE] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/IfMatch' }]
+      responses: { '200': { description: Reinstated request, headers: { ETag: { $ref: '#/components/headers/ETag' } } }, '409': { $ref: '#/components/responses/Conflict' }, '422': { $ref: '#/components/responses/Validation' } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+    Visibility: { name: visibility, in: query, schema: { type: string, enum: [ACTIVE, ALL], default: ACTIVE } }
+    Page: { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+    Size: { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
+    Filter: { name: filter, in: query, schema: { type: string, maxLength: 100 } }
+    IfMatch: { name: If-Match, in: header, required: true, description: Strong ETag returned by GET. Prevents lost updates., schema: { type: string, example: '"2026-01-01T00:00"' } }
+  headers:
+    ETag: { description: Version used by If-Match for subsequent mutations., schema: { type: string } }
+  schemas:
+    CarFleetRequestPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        sdn: { type: string, maxLength: 20 }
+        registration: { type: string, maxLength: 10 }
+        contractStart: { type: string, format: date }
+        state: { type: integer }
+        cancellationDate: { type: string, format: date }
+        contractTerm: { type: number, minimum: 0 }
+        cardLastFourDigits: { type: string, pattern: '^\\d{4}$', description: Exactly four digits; legacy fixtures support four only. }
+        creditCardRequested: { type: string, enum: [A, B] }
+        creditCardExpirationDate: { type: string, format: date }
+        codeElement: { type: string, maxLength: 50 }
+        interiorRegime: { type: string, maxLength: 80 }
+        monthlyFee: { type: number }
+        regSelection: { type: integer }
+        regSelectionUser: { type: string, maxLength: 30 }
+        costCenter: { type: string, maxLength: 20 }
+        viaTCard: { type: string, maxLength: 25 }
+        viaTCardRequested: { type: string, enum: [A, B] }
+    CarFleetRequest: { allOf: [{ $ref: '#/components/schemas/CarFleetRequestPatch' }, { type: object, required: [id, version], properties: { id: { type: integer, format: int64 }, version: { type: string }, retired: { type: boolean }, updatedAt: { type: string, format: date } } }] }
+    PageResponse: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/CarFleetRequest' } }, page: { type: integer }, size: { type: integer }, totalElements: { type: integer, format: int64 } } }
+    UpdateResponse: { type: object, properties: { item: { $ref: '#/components/schemas/CarFleetRequest' }, warnings: { type: array, items: { type: string } } } }
+    Problem: { type: object, required: [status, title], properties: { status: { type: integer }, title: { type: string }, detail: { type: string }, errors: { type: array, items: { type: object } } } }
+  responses:
+    BadRequest: { description: Malformed JSON, invalid types, or invalid request parameters, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Validation: { description: Domain validation failure, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    Conflict: { description: ETag mismatch, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+    NotFound: { description: Request not found, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }

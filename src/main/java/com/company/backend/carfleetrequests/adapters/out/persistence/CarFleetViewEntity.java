@@ -32,6 +32,7 @@ class CarFleetViewEntity {
     @Column(name="CreditCardLastFour") private String creditCardLastFour;
     @Column(name="Country") private String country;
     @Column(name="PetitionDate") private LocalDateTime petitionDate;
+    @Column(name="sysdate") private LocalDateTime sysdate;
     @Column(name="CostCenter") private String costCenter;
     @Column(name="ViaTCard") private String viaTCard;
     @Column(name="ViaTCardRequested") private String viaTCardRequested;
@@ -40,7 +41,6 @@ class CarFleetViewEntity {
     Long id(){return id;} String sdn(){return sdn;} String licencePlate(){return licencePlate;} LocalDate startTerm(){return local(startTerm);}
     Integer stateId(){return stateId;} LocalDate cancellationDate(){return local(cancellationDate);} BigDecimal term(){return term;} LocalDate endTerm(){return local(endTerm);}
     String creditCardLastFour(){return creditCardLastFour;} String country(){return country;} String costCenter(){return costCenter;} String viaTCard(){return viaTCard;} String viaTCardRequested(){return viaTCardRequested;} Integer regSelection(){return regSelection;} String regSelectionUser(){return regSelectionUser;} LocalDate updatedAt(){return local(petitionDate);}
-    String version(){return petitionDate==null?"0":petitionDate.toString();}
+    String version(){return sysdate==null?"0":sysdate.toString();}
     private static LocalDate local(LocalDateTime value){return value==null?null:value.toLocalDate();}
 }
-

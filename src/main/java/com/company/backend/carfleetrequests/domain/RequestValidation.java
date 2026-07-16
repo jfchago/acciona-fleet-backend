@@ -12,8 +12,10 @@ public final class RequestValidation {
         if (request.sdn() == null || request.sdn().isBlank()) errors.add(new Violation("sdn", "required"));
         if (request.contractStart() != null && (request.registration() == null || request.registration().isBlank()))
             errors.add(new Violation("registration", "required after contract start"));
-        if ((request.state() != null && (request.state() == CarFleetRequest.CANCELLED_STATE || request.state() == CarFleetRequest.CLOSED_STATE))
-                && request.cancellationDate() == null) errors.add(new Violation("cancellationDate", "required for state 14 or 25"));
+        if (request.state() != null && (request.state() == CarFleetRequest.CANCELLED_STATE || request.state() == CarFleetRequest.CLOSED_STATE)
+                && request.cancellationDate() == null) errors.add(new Violation("cancellationDate", "required for legacy retired state 14 or 25"));
+        if (request.state() != null && request.state() != CarFleetRequest.CANCELLED_STATE && request.state() != CarFleetRequest.CLOSED_STATE
+                && request.cancellationDate() != null) errors.add(new Violation("cancellationDate", "must be empty for an active legacy state"));
         if (request.contractTerm() != null && request.contractTerm().signum() <= 0)
             errors.add(new Violation("contractTerm", "must be positive"));
         if (request.contractStart() != null && request.contractTerm() == null)
@@ -23,8 +25,8 @@ public final class RequestValidation {
             if (request.contractEndDate() != null && !expected.equals(request.contractEndDate()))
                 errors.add(new Violation("contractEndDate", "must equal contract start plus contract term"));
         }
-        if (request.cardLastFourDigits() != null && !request.cardLastFourDigits().matches("\\d{4,5}"))
-            errors.add(new Violation("cardLastFourDigits", "must contain four or five digits"));
+        if (request.cardLastFourDigits() != null && !request.cardLastFourDigits().matches("\\d{4}"))
+            errors.add(new Violation("cardLastFourDigits", "must contain exactly four digits as supported by legacy fixtures"));
         return List.copyOf(errors);
     }
 

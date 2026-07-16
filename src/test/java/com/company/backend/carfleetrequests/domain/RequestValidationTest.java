@@ -23,6 +23,16 @@ class RequestValidationTest {
         assertThat(request.cardActivationEligible()).isTrue();
     }
 
+    @Test
+    void fiveCardDigits_areRejectedByLegacyCardinality() {
+        var request = new CarFleetRequest(42L, "SDN-1", "1234ABC", null, 1, null,
+                null, null, "12345", false, "v", LocalDate.of(2026, 1, 1));
+
+        assertThat(RequestValidation.validate(request)).extracting(RequestValidation.Violation::field)
+                .containsExactly("cardLastFourDigits");
+        assertThat(request.cardActivationEligible()).isFalse();
+    }
+
     private static CarFleetRequest request(int state, LocalDate cancellationDate, LocalDate endDate) {
         return new CarFleetRequest(42L, "SDN-1", "1234ABC", LocalDate.of(2026, 1, 1), state,
                 cancellationDate, BigDecimal.ONE, endDate, "1234", false,

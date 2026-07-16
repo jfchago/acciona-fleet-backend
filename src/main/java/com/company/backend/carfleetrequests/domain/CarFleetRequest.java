@@ -18,5 +18,5 @@ public record CarFleetRequest(Long id, String sdn, String registration, LocalDat
     public static final int CLOSED_STATE = 25;
     public static final int ACTIVE_STATE = 11;
     public boolean active() { return !retired; }
-    public boolean cardActivationEligible() { return cardLastFourDigits != null && cardLastFourDigits.matches("\\d{4,5}"); }
+    public boolean cardActivationEligible() { return cardLastFourDigits != null && cardLastFourDigits.matches("\\d{4}"); }
 }

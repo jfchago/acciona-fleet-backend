@@ -1,9 +1,11 @@
 package com.company.backend.carfleetrequests.application.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
 import com.company.backend.carfleetrequests.application.port.out.*;
 import com.company.backend.carfleetrequests.domain.*;
 import java.math.BigDecimal;
@@ -63,12 +65,14 @@ class DefaultCarFleetRequestServiceTest {
         var retired = new CarFleetRequest(id, current.sdn(), current.registration(), current.contractStart(), 14,
                 LocalDate.of(2026, 1, 2), current.contractTerm(), current.contractEndDate(), current.cardLastFourDigits(),
                 true, "2026-01-02T00:00", LocalDate.of(2026, 1, 2));
-        when(writes.update(id, current.version(), Map.of("state", 14), 14, "alice")).thenReturn(Optional.of(retired));
+        when(writes.update(eq(id), eq(current.version()), anyMap(), eq(14), eq("alice"))).thenReturn(Optional.of(retired));
 
         service.retire(id, current.version());
 
-        verify(writes).update(id, current.version(), Map.of("state", 14), 14, "alice");
-        verify(audits).append(id, "RETIRE", "alice", Map.of("state", 14));
+        var changes = ArgumentCaptor.forClass(Map.class);
+        verify(writes).update(eq(id), eq(current.version()), changes.capture(), eq(14), eq("alice"));
+        assertThat(changes.getValue()).containsKeys("state", "cancellationDate").containsEntry("state", 14);
+        verify(audits).append(eq(id), eq("RETIRE"), eq("alice"), eq(changes.getValue()));
     }
 
     private DefaultCarFleetRequestService service() {

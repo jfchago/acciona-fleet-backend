@@ -41,8 +41,12 @@ public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
         var saved=mutate(id,version,effective,CarFleetRequestAuthorizationPort.Action.UPDATE,"UPDATE",user);
         return new UpdateResult(saved,warnings);
     }
-    @Override public CarFleetRequest retire(Long id,String version) { return mutate(id,version,Map.of("state", CarFleetRequest.CANCELLED_STATE),CarFleetRequestAuthorizationPort.Action.RETIRE,"RETIRE"); }
-    @Override public CarFleetRequest reinstate(Long id,String version) { return mutate(id,version,Map.of("state", CarFleetRequest.ACTIVE_STATE),CarFleetRequestAuthorizationPort.Action.REINSTATE,"REINSTATE"); }
+    @Override public CarFleetRequest retire(Long id,String version) {
+        return mutate(id,version,changes(CarFleetRequest.CANCELLED_STATE, LocalDate.now()),CarFleetRequestAuthorizationPort.Action.RETIRE,"RETIRE");
+    }
+    @Override public CarFleetRequest reinstate(Long id,String version) {
+        return mutate(id,version,changes(CarFleetRequest.ACTIVE_STATE, null),CarFleetRequestAuthorizationPort.Action.REINSTATE,"REINSTATE");
+    }
     @Override public CarFleetRequest duplicate(Long id) {
         var user=require(id,CarFleetRequestAuthorizationPort.Action.DUPLICATE);
         return writes.duplicate(id,user.id()).orElseThrow(()->new CarFleetRequestExceptions.NotFound(id));
@@ -51,7 +55,8 @@ public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
     private CarFleetRequest mutate(Long id,String version,Map<String,Object> changes,CarFleetRequestAuthorizationPort.Action action,String auditAction,CurrentUserPort.User user) {
         var current=reads.findById(id,RequestVisibility.ALL).orElseThrow(()->new CarFleetRequestExceptions.NotFound(id));
         if (version==null || !version.equals(current.version())) throw new CarFleetRequestExceptions.Conflict();
-        if (action==CarFleetRequestAuthorizationPort.Action.UPDATE) {
+        if (action==CarFleetRequestAuthorizationPort.Action.UPDATE || action==CarFleetRequestAuthorizationPort.Action.RETIRE
+                || action==CarFleetRequestAuthorizationPort.Action.REINSTATE) {
             if (changes==null || changes.isEmpty() || !EDITABLE.containsAll(changes.keySet())) throw new IllegalArgumentException("Only editable request fields may be changed");
             if ("A".equalsIgnoreCase(String.valueOf(changes.get("creditCardRequested")))) {
                 var digits=changes.containsKey("cardLastFourDigits")?changes.get("cardLastFourDigits"):current.cardLastFourDigits();
@@ -70,10 +75,17 @@ public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
         LocalDate start=date(x.getOrDefault("contractStart",c.contractStart())), cancel=date(x.getOrDefault("cancellationDate",c.cancellationDate()));
         Integer state=integer(x.getOrDefault("state",c.state())); BigDecimal term=decimal(x.getOrDefault("contractTerm",c.contractTerm()));
         LocalDate end=start!=null&&term!=null&&term.signum()>0?start.plusMonths(term.longValueExact()).minusDays(1):c.contractEndDate();
-        return new CarFleetRequest(c.id(),sdn,reg,start,state,cancel,term,end,digits,c.retired(),c.version(),c.updatedAt(),c.costCenter(),c.viaTCard(),c.viaTCardRequested(),c.regSelection(),c.regSelectionUser());
+        boolean retired=state!=null && (state==CarFleetRequest.CANCELLED_STATE || state==CarFleetRequest.CLOSED_STATE);
+        return new CarFleetRequest(c.id(),sdn,reg,start,state,cancel,term,end,digits,retired,c.version(),c.updatedAt(),c.costCenter(),c.viaTCard(),c.viaTCardRequested(),c.regSelection(),c.regSelectionUser());
     }
     private static LocalDate date(Object o){return o==null?null:o instanceof LocalDate d?d:LocalDate.parse(o.toString());}
     private static Integer integer(Object o){return o==null?null:o instanceof Number n?n.intValue():Integer.valueOf(o.toString());}
     private static BigDecimal decimal(Object o){return o==null?null:o instanceof BigDecimal d?d:o instanceof Number n?BigDecimal.valueOf(n.doubleValue()):new BigDecimal(o.toString());}
     private static String string(Object o){return o==null?null:o.toString();}
+    private static Map<String,Object> changes(Integer state, LocalDate cancellationDate) {
+        var changes = new LinkedHashMap<String,Object>();
+        changes.put("state", state);
+        changes.put("cancellationDate", cancellationDate);
+        return changes;
+    }
 }
