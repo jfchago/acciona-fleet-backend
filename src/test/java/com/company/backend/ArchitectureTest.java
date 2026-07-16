@@ -14,7 +14,7 @@ class ArchitectureTest {
     private static final String CONFIGURATION = "com.company.backend.configuration..";
 
     @ArchTest
-    static final ArchRule domain_is_framework_free = noClasses().that().resideInAnyPackage(DOMAIN)
+    static final ArchRule domain_is_framework_free = noClasses().that().resideInAnyPackage(DOMAIN, "com.company.backend.carfleetrequests.domain..")
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "org.springframework..", "jakarta.persistence..", "jakarta.validation..",
                         ADAPTERS, CONFIGURATION)
@@ -22,7 +22,7 @@ class ArchitectureTest {
 
     @ArchTest
     static final ArchRule application_does_not_depend_on_adapters_or_configuration = noClasses()
-                .that().resideInAnyPackage("com.company.backend.shared.application..")
+                .that().resideInAnyPackage("com.company.backend.shared.application..", "com.company.backend.carfleetrequests.application..")
                 .should().dependOnClassesThat().resideInAnyPackage(ADAPTERS, CONFIGURATION)
                 ;
 }
