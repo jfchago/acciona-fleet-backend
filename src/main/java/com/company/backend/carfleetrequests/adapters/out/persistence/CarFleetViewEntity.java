@@ -32,7 +32,9 @@ class CarFleetViewEntity {
     @Column(name="CreditCardLastFour") private String creditCardLastFour;
     @Column(name="Country") private String country;
     @Column(name="PetitionDate") private LocalDateTime petitionDate;
-    @Column(name="sysdate") private LocalDateTime sysdate;
+    // The view does not expose sysdate. Native queries populate this read-only
+    // field from CarFleet through the explicit version_sysdate alias.
+    @Column(name="version_sysdate", insertable=false, updatable=false) private LocalDateTime versionSysdate;
     @Column(name="CostCenter") private String costCenter;
     @Column(name="ViaTCard") private String viaTCard;
     @Column(name="ViaTCardRequested") private String viaTCardRequested;
@@ -41,6 +43,6 @@ class CarFleetViewEntity {
     Long id(){return id;} String sdn(){return sdn;} String licencePlate(){return licencePlate;} LocalDate startTerm(){return local(startTerm);}
     Integer stateId(){return stateId;} LocalDate cancellationDate(){return local(cancellationDate);} BigDecimal term(){return term;} LocalDate endTerm(){return local(endTerm);}
     String creditCardLastFour(){return creditCardLastFour;} String country(){return country;} String costCenter(){return costCenter;} String viaTCard(){return viaTCard;} String viaTCardRequested(){return viaTCardRequested;} Integer regSelection(){return regSelection;} String regSelectionUser(){return regSelectionUser;} LocalDate updatedAt(){return local(petitionDate);}
-    String version(){return sysdate==null?"0":sysdate.toString();}
+    String version(){return versionSysdate==null?"0":versionSysdate.toString();}
     private static LocalDate local(LocalDateTime value){return value==null?null:value.toLocalDate();}
 }
