@@ -35,6 +35,8 @@ Las dependencias deben apuntar hacia el dominio y la aplicación. Los controlado
 2. Mantener nombres explícitos y consistentes con el código existente: `*Controller`, `*UseCase`, `*Service`, `*Response`, `*Request` y `*Repository`.
 3. Separar DTOs HTTP de objetos de dominio. Validar entradas con Bean Validation y devolver errores mediante Problem Details; no exponer stack traces ni detalles sensibles.
 4. Versionar endpoints y documentar cambios de contrato en OpenAPI. Si cambia el contrato, actualizar el artefacto compartido y avisar del impacto en frontend.
+- **Database First:** antes de crear tablas nuevas o migraciones Flyway, localizar y mapear la tabla, vista y relaciones equivalentes de la base de datos SQL Server del legacy. Se debe reutilizar el modelo legacy siempre que cubra la funcionalidad requerida.
+- Priorizar la persistencia mediante JPA, Hibernate y Spring Data JPA. Utilizar Spring JDBC Template únicamente cuando sea estrictamente necesario y exista una limitación justificada de JPA/Hibernate.
 5. No crear ni modificar esquema mediante `ddl-auto`; toda evolución de base de datos debe ser una migración Flyway incremental, reversible operacionalmente y compatible con SQL Server.
 6. Usar `UUID`/`uniqueidentifier` y `OffsetDateTime`/`datetimeoffset` cuando correspondan a las convenciones actuales. Mantener `open-in-view=false`.
 7. Configuración, URLs, credenciales, issuer y secretos siempre por variables de entorno o perfiles; nunca hardcodeados ni registrados en logs.
@@ -70,4 +72,3 @@ mvn test
 mvn verify
 mvn spring-boot:run
 ```
-
