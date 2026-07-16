@@ -13,5 +13,5 @@ class SpringCurrentUserAdapter implements CurrentUserPort {
 }
 @Component
 class CarFleetRequestAuthorizationAdapter implements CarFleetRequestAuthorizationPort {
-    public boolean allowed(CurrentUserPort.User u,Action action,UUID id) { if(u.authorities().contains("Access")) return true; String verb=action.name(); return u.authorities().stream().anyMatch(x->x.equals("CARFLEET_REQUESTS_"+verb)||x.equals("carfleet-requests:"+id+":"+verb.toLowerCase(Locale.ROOT))||x.equals("carfleet-requests:*:"+verb.toLowerCase(Locale.ROOT))); }
+    public boolean allowed(CurrentUserPort.User u,Action action,Long id) { if(u.authorities().contains("Access")) return true; String verb=action.name(); return u.authorities().stream().anyMatch(x->x.equals("CARFLEET_REQUESTS_"+verb)||x.equals("carfleet-requests:"+id+":"+verb.toLowerCase(Locale.ROOT))||x.equals("carfleet-requests:*:"+verb.toLowerCase(Locale.ROOT))); }
 }
