@@ -63,11 +63,11 @@ public class CarFleetRequestJpaAdapter implements CarFleetRequestReadPort, CarFl
         if(changes.containsKey("regSelectionUser")) entity.setRegSelectionUser((String)changes.get("regSelectionUser"));
         entity.touch(actor); cars.saveAndFlush(entity); persistAudit(entity, previous, entity.auditState(), changes, actor);
         persistLegacySideEffects(id, previous, entity, changes, actor);
-        return findById(id,RequestVisibility.ALL);
+        return findByIdAny(id);
     }
     public Optional<CarFleetRequest> duplicate(Long id,String actor){
         var source=cars.findById(id).orElse(null); if(source==null)return Optional.empty();
-        var saved=cars.saveAndFlush(source.duplicate(actor)); return findById(saved.id(),RequestVisibility.ALL);
+        var saved=cars.saveAndFlush(source.duplicate(actor)); return findByIdAny(saved.id());
     }
     public void append(Long requestId,String action,String actor,Map<String,Object> changes){ /* update performs the transactional legacy side effects with the old snapshot */ }
     private void persistAudit(CarFleetEntity entity,Map<String,Object> previous,Map<String,Object> current,Map<String,Object> requested,String actor){
@@ -106,6 +106,7 @@ public class CarFleetRequestJpaAdapter implements CarFleetRequestReadPort, CarFl
     private static String controlType(String key){return Set.of("state","creditCardRequested","vehicleClassification").contains(key)?"ComboBox - ":"TextBox - ";}
     private static String string(Object value){return value==null?null:value.toString();}
     private static Integer integer(Object value){return value==null?null:value instanceof Number n?n.intValue():Integer.valueOf(value.toString());}
+    private Optional<CarFleetRequest> findByIdAny(Long id){return views.findActiveById(id).or(() -> views.findAllLegacyById(id)).map(this::map);}
     private CarFleetRequest map(CarFleetViewEntity x){boolean retired=x.stateId()!=null&&(x.stateId()==14||x.stateId()==25);return new CarFleetRequest(x.id(),x.sdn(),x.licencePlate(),x.startTerm(),x.stateId(),x.cancellationDate(),x.term(),x.endTerm(),x.creditCardLastFour(),retired,version(x),x.updatedAt(),x.costCenter(),x.viaTCard(),x.viaTCardRequested(),x.regSelection(),x.regSelectionUser(),x.petitionId(),x.divisionName(),x.substitutionVehicle(),x.driverName(),x.director(),x.stateCode(),x.stateDescription(),x.monthlyFee(),x.contract(),x.provider(),x.vehicleClassification(),x.fuelType(),x.co2Index(),x.environmentalTag(),x.documentation(),x.planMoves(),x.renewableFuel(),x.country());}
     private String version(CarFleetViewEntity x){return x.version();} private String version(CarFleetEntity x){return x.version();}
     private static LocalDate date(Object x){return x==null?null:x instanceof LocalDate d?d:LocalDate.parse(x.toString());} private static BigDecimal decimal(Object x){return x==null?null:x instanceof BigDecimal d?d:new BigDecimal(x.toString());}
