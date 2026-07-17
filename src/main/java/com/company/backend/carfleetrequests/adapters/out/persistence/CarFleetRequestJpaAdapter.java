@@ -66,6 +66,8 @@ public class CarFleetRequestJpaAdapter implements CarFleetRequestReadPort, CarFl
         if(changes.containsKey("costCenter")) entity.setCostCenter((String)changes.get("costCenter")); if(changes.containsKey("viaTCard")) entity.setViaTCard((String)changes.get("viaTCard")); if(changes.containsKey("viaTCardRequested")) entity.setViaTCardRequested((String)changes.get("viaTCardRequested"));
         if(changes.containsKey("regSelection")) { entity.setRegSelection(integer(changes.get("regSelection"))); entity.setRegSelectionUser(entity.regSelection()!=null && entity.regSelection()==-1 ? actor : ""); }
         if(changes.containsKey("regSelectionUser")) entity.setRegSelectionUser((String)changes.get("regSelectionUser"));
+        if(changes.containsKey("planMoves")) entity.setPlanMoves(integer(changes.get("planMoves")));
+        if(changes.containsKey("renewableFuel")) entity.setRenewableFuel(integer(changes.get("renewableFuel")));
         entity.touch(actor); cars.saveAndFlush(entity); persistAudit(entity, previous, entity.auditState(), changes, actor);
         persistLegacySideEffects(id, previous, entity, changes, actor);
         return findByIdAny(id);

@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
-    private static final Set<String> EDITABLE = Set.of("sdn", "registration", "contractStart", "state", "cancellationDate", "contractTerm", "cardLastFourDigits", "creditCardRequested", "creditCardExpirationDate", "codeElement", "interiorRegime", "monthlyFee", "regSelection", "regSelectionUser", "costCenter", "viaTCard", "viaTCardRequested", "vehicleClassification");
+    private static final Set<String> EDITABLE = Set.of("sdn", "registration", "contractStart", "state", "cancellationDate", "contractTerm", "cardLastFourDigits", "creditCardRequested", "creditCardExpirationDate", "codeElement", "interiorRegime", "monthlyFee", "regSelection", "regSelectionUser", "costCenter", "viaTCard", "viaTCardRequested", "vehicleClassification", "planMoves", "renewableFuel");
     private final CarFleetRequestReadPort reads; private final CarFleetRequestWritePort writes; private final CarFleetRequestAuditPort audits;
     private final CurrentUserPort users; private final CarFleetRequestAuthorizationPort authorization;
     private final CarFleetRequestMasterDataPort masterData;
@@ -118,7 +118,8 @@ public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
         Integer state=integer(x.getOrDefault("state",c.state())); BigDecimal term=decimal(x.getOrDefault("contractTerm",c.contractTerm()));
         LocalDate end=start!=null&&term!=null&&term.signum()>0?start.plusMonths(term.longValueExact()).minusDays(1):c.contractEndDate();
         boolean retired=state!=null && (state==CarFleetRequest.CANCELLED_STATE || state==CarFleetRequest.CLOSED_STATE);
-        return new CarFleetRequest(c.id(),sdn,reg,start,state,cancel,term,end,digits,retired,c.version(),c.updatedAt(),c.costCenter(),c.viaTCard(),c.viaTCardRequested(),c.regSelection(),c.regSelectionUser(),c.petitionId(),c.divisionName(),c.substitutionVehicle(),c.driverName(),c.director(),c.stateCode(),c.stateDescription(),c.monthlyFee(),c.contract(),c.provider(),string(x.getOrDefault("vehicleClassification",c.vehicleClassification())),c.fuelType(),c.co2Index(),c.environmentalTag(),c.documentation(),c.planMoves(),c.renewableFuel(),c.country());
+        Integer planMoves=integer(x.getOrDefault("planMoves",c.planMoves())), renewableFuel=integer(x.getOrDefault("renewableFuel",c.renewableFuel()));
+        return new CarFleetRequest(c.id(),sdn,reg,start,state,cancel,term,end,digits,retired,c.version(),c.updatedAt(),c.costCenter(),c.viaTCard(),c.viaTCardRequested(),c.regSelection(),c.regSelectionUser(),c.petitionId(),c.divisionName(),c.substitutionVehicle(),c.driverName(),c.director(),c.stateCode(),c.stateDescription(),c.monthlyFee(),c.contract(),c.provider(),string(x.getOrDefault("vehicleClassification",c.vehicleClassification())),c.fuelType(),c.co2Index(),c.environmentalTag(),c.documentation(),planMoves,renewableFuel,c.country());
     }
     private static LocalDate date(Object o){return o==null?null:o instanceof LocalDate d?d:LocalDate.parse(o.toString());}
     private static Integer integer(Object o){return o==null?null:o instanceof Number n?n.intValue():Integer.valueOf(o.toString());}

@@ -3,6 +3,8 @@ package com.company.backend.carfleetrequests.adapters.in.rest;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,7 +30,9 @@ public record CarFleetRequestPatch(
         @Size(max = 20) String costCenter,
         @Size(max = 25) String viaTCard,
         @Pattern(regexp = "[ABab]", message = "must be A or B") String viaTCardRequested,
-        @Size(max = 80) String vehicleClassification) {
+        @Size(max = 80) String vehicleClassification,
+        @Min(-1) @Max(0) Integer planMoves,
+        @Min(-1) @Max(0) Integer renewableFuel) {
 
     Map<String, Object> toChanges() {
         var changes = new LinkedHashMap<String, Object>();
@@ -40,6 +44,7 @@ public record CarFleetRequestPatch(
         put(changes, "regSelectionUser", regSelectionUser); put(changes, "costCenter", costCenter); put(changes, "viaTCard", viaTCard);
         put(changes, "viaTCardRequested", viaTCardRequested);
         put(changes, "vehicleClassification", vehicleClassification);
+        put(changes, "planMoves", planMoves); put(changes, "renewableFuel", renewableFuel);
         return changes;
     }
 

@@ -23,8 +23,6 @@ public final class RequestValidation {
                 && request.cancellationDate() != null) errors.add(new Violation("cancellationDate", "must be empty for an active legacy state"));
         if (changedFields.contains("contractTerm") && request.contractTerm() != null && request.contractTerm().signum() <= 0)
             errors.add(new Violation("contractTerm", "must be positive"));
-        if ((changedFields.contains("contractStart") || changedFields.contains("contractTerm")) && request.contractStart() != null && request.contractTerm() == null)
-            errors.add(new Violation("contractTerm", "required when contractStart is set"));
         if ((changedFields.contains("contractStart") || changedFields.contains("contractTerm")) && request.contractStart() != null && request.contractTerm() != null && request.contractTerm().signum() > 0) {
             LocalDate expected = request.contractStart().plusMonths(request.contractTerm().longValue()).minusDays(1);
             if (request.contractEndDate() != null && !expected.equals(request.contractEndDate()))
