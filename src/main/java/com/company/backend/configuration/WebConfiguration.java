@@ -12,9 +12,9 @@ public class WebConfiguration implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins("http://localhost:3000", "http://127.0.0.1:3000")
-                .allowedMethods(RequestMethod.GET.name(), RequestMethod.POST.name(), RequestMethod.OPTIONS.name())
-                .allowedHeaders("Accept", "Content-Type", "Authorization")
-                .exposedHeaders("Content-Disposition")
+                .allowedMethods(RequestMethod.GET.name(), RequestMethod.POST.name(), RequestMethod.PATCH.name(), RequestMethod.PUT.name(), RequestMethod.DELETE.name(), RequestMethod.OPTIONS.name())
+                .allowedHeaders("Accept", "Content-Type", "Authorization", "If-Match", "If-None-Match")
+                .exposedHeaders("Content-Disposition", "ETag")
                 .allowCredentials(true)
                 .maxAge(3600);
     }
