@@ -48,6 +48,18 @@ class DefaultCarFleetRequestServiceTest {
     }
 
     @Test
+    void legacyFlags_areAcceptedAndForwardedWithAccessValues() {
+        var service = service();
+        when(writes.update(eq(id), eq(current.version()), anyMap(), eq(1), eq("alice"))).thenReturn(Optional.of(current));
+
+        service.update(id, current.version(), Map.of("renewableFuel", -1, "planMoves", 0));
+
+        var changes = ArgumentCaptor.forClass(Map.class);
+        verify(writes).update(eq(id), eq(current.version()), changes.capture(), eq(1), eq("alice"));
+        assertThat(changes.getValue()).containsEntry("renewableFuel", -1).containsEntry("planMoves", 0);
+    }
+
+    @Test
     void unauthorizedMutation_isRejectedBeforeReadMutation() {
         when(users.current()).thenReturn(user);
         when(policy.allowed(any(), eq(CarFleetRequestAuthorizationPort.Action.RETIRE), eq(id))).thenReturn(false);

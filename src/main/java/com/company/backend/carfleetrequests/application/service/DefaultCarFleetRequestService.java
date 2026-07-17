@@ -1,6 +1,7 @@
 package com.company.backend.carfleetrequests.application.service;
 
 import com.company.backend.carfleetrequests.application.port.in.CarFleetRequestUseCases;
+import com.company.backend.carfleetrequests.application.port.in.OperationalActionResult;
 import com.company.backend.carfleetrequests.application.port.out.*;
 import com.company.backend.carfleetrequests.domain.*;
 import java.math.BigDecimal;
@@ -10,13 +11,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
-    private static final Set<String> EDITABLE = Set.of("sdn", "registration", "contractStart", "state", "cancellationDate", "contractTerm", "cardLastFourDigits", "creditCardRequested", "creditCardExpirationDate", "codeElement", "interiorRegime", "monthlyFee", "regSelection", "regSelectionUser", "costCenter", "viaTCard", "viaTCardRequested");
+    private static final Set<String> EDITABLE = Set.of("sdn", "registration", "contractStart", "state", "cancellationDate", "contractTerm", "cardLastFourDigits", "creditCardRequested", "creditCardExpirationDate", "codeElement", "interiorRegime", "monthlyFee", "regSelection", "regSelectionUser", "costCenter", "viaTCard", "viaTCardRequested", "vehicleClassification", "planMoves", "renewableFuel");
     private final CarFleetRequestReadPort reads; private final CarFleetRequestWritePort writes; private final CarFleetRequestAuditPort audits;
     private final CurrentUserPort users; private final CarFleetRequestAuthorizationPort authorization;
+    private final CarFleetRequestMasterDataPort masterData;
+    public DefaultCarFleetRequestService(CarFleetRequestReadPort reads, CarFleetRequestWritePort writes, CarFleetRequestAuditPort audits,
+                                         CurrentUserPort users, CarFleetRequestAuthorizationPort authorization, CarFleetRequestMasterDataPort masterData) {
+        this.reads=reads; this.writes=writes; this.audits=audits; this.users=users; this.authorization=authorization;
+        this.masterData = masterData;
+    }
     public DefaultCarFleetRequestService(CarFleetRequestReadPort reads, CarFleetRequestWritePort writes, CarFleetRequestAuditPort audits,
                                          CurrentUserPort users, CarFleetRequestAuthorizationPort authorization) {
-        this.reads=reads; this.writes=writes; this.audits=audits; this.users=users; this.authorization=authorization;
+        this(reads, writes, audits, users, authorization, new CarFleetRequestMasterDataPort() {
+            @Override public List<State> findStates() { return List.of(); }
+            @Override public List<VehicleClassification> findVehicleClassificationsForSpain() { return List.of(); }
+        });
     }
+    @Override @Transactional(readOnly=true) public List<State> states(){ require(null, CarFleetRequestAuthorizationPort.Action.READ); return masterData.findStates(); }
+    @Override @Transactional(readOnly=true) public List<VehicleClassification> vehicleClassifications(){ require(null, CarFleetRequestAuthorizationPort.Action.READ); return masterData.findVehicleClassificationsForSpain(); }
     @Override @Transactional(readOnly=true)
     public Page list(RequestVisibility visibility,int page,int size,String sort,String filter) {
         require(null,CarFleetRequestAuthorizationPort.Action.READ);
@@ -51,6 +63,36 @@ public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
         var user=require(id,CarFleetRequestAuthorizationPort.Action.DUPLICATE);
         return writes.duplicate(id,user.id()).orElseThrow(()->new CarFleetRequestExceptions.NotFound(id));
     }
+    @Override public OperationalActionResult execute(Long id, OperationalAction action, boolean confirmed) {
+        if (action == null) throw new IllegalArgumentException("action is required");
+        var user = require(id, CarFleetRequestAuthorizationPort.Action.OPERATIONAL_ACTION);
+        var current = reads.findById(id, RequestVisibility.ALL)
+                .orElseThrow(() -> new CarFleetRequestExceptions.NotFound(id));
+        if ((action == OperationalAction.EMAIL || action == OperationalAction.EXPORT) && !confirmed)
+            throw new IllegalArgumentException("confirmation is required for " + action.name().toLowerCase(Locale.ROOT));
+        if ((action == OperationalAction.RETIRE || action == OperationalAction.REINSTATE)
+                && current.retired() && action != OperationalAction.REINSTATE)
+            throw new CarFleetRequestExceptions.Invalid(List.of(new RequestValidation.Violation("state", "action is unavailable for a retired request")));
+        if (action == OperationalAction.DUPLICATE) {
+            require(id, CarFleetRequestAuthorizationPort.Action.DUPLICATE);
+            var copy = writes.duplicate(id, user.id()).orElseThrow(() -> new CarFleetRequestExceptions.NotFound(id));
+            audits.append(id, "DUPLICATE", user.id(), Map.of("resultRequestId", copy.id()));
+            return new OperationalActionResult(action, copy.id(), "COMPLETED", "Request duplicated");
+        }
+        if (action == OperationalAction.RETIRE) {
+            require(id, CarFleetRequestAuthorizationPort.Action.RETIRE);
+            mutate(id, current.version(), changes(CarFleetRequest.CANCELLED_STATE, LocalDate.now()),
+                    CarFleetRequestAuthorizationPort.Action.RETIRE, "RETIRE", user);
+            return new OperationalActionResult(action, id, "COMPLETED", "Request retired");
+        }
+        if (action == OperationalAction.REINSTATE) {
+            require(id, CarFleetRequestAuthorizationPort.Action.REINSTATE);
+            mutate(id, current.version(), changes(CarFleetRequest.ACTIVE_STATE, null),
+                    CarFleetRequestAuthorizationPort.Action.REINSTATE, "REINSTATE", user);
+            return new OperationalActionResult(action, id, "COMPLETED", "Request reinstated");
+        }
+        throw new CarFleetRequestExceptions.Unavailable(action.name());
+    }
     private CarFleetRequest mutate(Long id,String version,Map<String,Object> changes,CarFleetRequestAuthorizationPort.Action action,String auditAction) { return mutate(id,version,changes,action,auditAction,require(id,action)); }
     private CarFleetRequest mutate(Long id,String version,Map<String,Object> changes,CarFleetRequestAuthorizationPort.Action action,String auditAction,CurrentUserPort.User user) {
         var current=reads.findById(id,RequestVisibility.ALL).orElseThrow(()->new CarFleetRequestExceptions.NotFound(id));
@@ -62,7 +104,7 @@ public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
                 var digits=changes.containsKey("cardLastFourDigits")?changes.get("cardLastFourDigits"):current.cardLastFourDigits();
                 if (digits==null || digits.toString().isBlank()) throw new CarFleetRequestExceptions.Invalid(List.of(new RequestValidation.Violation("cardLastFourDigits", "required when activating a credit card")));
             }
-            var candidate=merge(current,changes); var violations=RequestValidation.validate(candidate); if(!violations.isEmpty()) throw new CarFleetRequestExceptions.Invalid(violations);
+            var candidate=merge(current,changes); var violations=RequestValidation.validate(candidate, changes.keySet()); if(!violations.isEmpty()) throw new CarFleetRequestExceptions.Invalid(violations);
             if ("A".equalsIgnoreCase(string(changes.get("creditCardRequested"))) && (candidate.cardLastFourDigits()==null || candidate.cardLastFourDigits().isBlank()))
                 throw new CarFleetRequestExceptions.Invalid(List.of(new RequestValidation.Violation("creditCardRequested", "E: introducir los últimos dígitos de la tarjeta antes de activar")));
         }
@@ -76,7 +118,8 @@ public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
         Integer state=integer(x.getOrDefault("state",c.state())); BigDecimal term=decimal(x.getOrDefault("contractTerm",c.contractTerm()));
         LocalDate end=start!=null&&term!=null&&term.signum()>0?start.plusMonths(term.longValueExact()).minusDays(1):c.contractEndDate();
         boolean retired=state!=null && (state==CarFleetRequest.CANCELLED_STATE || state==CarFleetRequest.CLOSED_STATE);
-        return new CarFleetRequest(c.id(),sdn,reg,start,state,cancel,term,end,digits,retired,c.version(),c.updatedAt(),c.costCenter(),c.viaTCard(),c.viaTCardRequested(),c.regSelection(),c.regSelectionUser());
+        Integer planMoves=integer(x.getOrDefault("planMoves",c.planMoves())), renewableFuel=integer(x.getOrDefault("renewableFuel",c.renewableFuel()));
+        return new CarFleetRequest(c.id(),sdn,reg,start,state,cancel,term,end,digits,retired,c.version(),c.updatedAt(),c.costCenter(),c.viaTCard(),c.viaTCardRequested(),c.regSelection(),c.regSelectionUser(),c.petitionId(),c.divisionName(),c.substitutionVehicle(),c.driverName(),c.director(),c.stateCode(),c.stateDescription(),c.monthlyFee(),c.contract(),c.provider(),string(x.getOrDefault("vehicleClassification",c.vehicleClassification())),c.fuelType(),c.co2Index(),c.environmentalTag(),c.documentation(),planMoves,renewableFuel,c.country());
     }
     private static LocalDate date(Object o){return o==null?null:o instanceof LocalDate d?d:LocalDate.parse(o.toString());}
     private static Integer integer(Object o){return o==null?null:o instanceof Number n?n.intValue():Integer.valueOf(o.toString());}

@@ -10,4 +10,5 @@ public final class CarFleetRequestExceptions {
     public static class Conflict extends RuntimeException { public Conflict() { super("The request was modified by another client"); } }
     public static class Invalid extends RuntimeException { private final List<RequestValidation.Violation> violations; public Invalid(List<RequestValidation.Violation> v) { super("CarFleetRequest validation failed"); violations=v; } public List<RequestValidation.Violation> violations(){return violations;} }
     public static class DuplicateSdn extends RuntimeException { public DuplicateSdn() { super("A request with the same SDN already exists"); } }
+    public static class Unavailable extends RuntimeException { public Unavailable(String action) { super("The operational action is not configured: " + action); } }
 }

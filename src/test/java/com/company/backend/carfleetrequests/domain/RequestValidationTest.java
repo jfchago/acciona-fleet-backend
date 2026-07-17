@@ -3,6 +3,7 @@ package com.company.backend.carfleetrequests.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class RequestValidationTest {
@@ -31,6 +32,14 @@ class RequestValidationTest {
         assertThat(RequestValidation.validate(request)).extracting(RequestValidation.Violation::field)
                 .containsExactly("cardLastFourDigits");
         assertThat(request.cardActivationEligible()).isFalse();
+    }
+
+    @Test
+    void contractStart_withoutTerm_isAllowedForLegacyRecord() {
+        var request = new CarFleetRequest(42L, "SDN-1", "1234ABC", LocalDate.of(2026, 1, 1), 1,
+                null, null, null, "1234", false, "v", LocalDate.of(2026, 1, 1));
+
+        assertThat(RequestValidation.validate(request, Set.of("contractStart"))).isEmpty();
     }
 
     private static CarFleetRequest request(int state, LocalDate cancellationDate, LocalDate endDate) {
