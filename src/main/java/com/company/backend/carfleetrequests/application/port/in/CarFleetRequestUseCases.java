@@ -11,6 +11,8 @@ public interface CarFleetRequestUseCases {
     CarFleetRequest reinstate(Long id, String expectedVersion);
     CarFleetRequest duplicate(Long id);
     OperationalActionResult execute(Long id, OperationalAction action, boolean confirmed);
+    List<State> states();
+    List<VehicleClassification> vehicleClassifications();
     record UpdateResult(CarFleetRequest request, List<String> warnings) { }
     record Page(List<CarFleetRequest> items, int page, int size, long totalElements) { }
 }

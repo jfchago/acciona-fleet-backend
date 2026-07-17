@@ -27,7 +27,8 @@ public record CarFleetRequestPatch(
         @Size(max = 30) String regSelectionUser,
         @Size(max = 20) String costCenter,
         @Size(max = 25) String viaTCard,
-        @Pattern(regexp = "[ABab]", message = "must be A or B") String viaTCardRequested) {
+        @Pattern(regexp = "[ABab]", message = "must be A or B") String viaTCardRequested,
+        @Size(max = 80) String vehicleClassification) {
 
     Map<String, Object> toChanges() {
         var changes = new LinkedHashMap<String, Object>();
@@ -38,6 +39,7 @@ public record CarFleetRequestPatch(
         put(changes, "interiorRegime", interiorRegime); put(changes, "monthlyFee", monthlyFee); put(changes, "regSelection", regSelection);
         put(changes, "regSelectionUser", regSelectionUser); put(changes, "costCenter", costCenter); put(changes, "viaTCard", viaTCard);
         put(changes, "viaTCardRequested", viaTCardRequested);
+        put(changes, "vehicleClassification", vehicleClassification);
         return changes;
     }
 

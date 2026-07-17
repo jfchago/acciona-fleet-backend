@@ -33,7 +33,8 @@ public class CompositionRootConfiguration {
     @Bean
     CarFleetRequestUseCases carFleetRequestService(CarFleetRequestReadPort reads, CarFleetRequestWritePort writes,
                                                     CarFleetRequestAuditPort audits, CurrentUserPort users,
-                                                    CarFleetRequestAuthorizationPort authorization) {
-        return new DefaultCarFleetRequestService(reads, writes, audits, users, authorization);
+                                                    CarFleetRequestAuthorizationPort authorization,
+                                                    CarFleetRequestMasterDataPort masterData) {
+        return new DefaultCarFleetRequestService(reads, writes, audits, users, authorization, masterData);
     }
 }
