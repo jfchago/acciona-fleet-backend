@@ -104,7 +104,7 @@ public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
                 var digits=changes.containsKey("cardLastFourDigits")?changes.get("cardLastFourDigits"):current.cardLastFourDigits();
                 if (digits==null || digits.toString().isBlank()) throw new CarFleetRequestExceptions.Invalid(List.of(new RequestValidation.Violation("cardLastFourDigits", "required when activating a credit card")));
             }
-            var candidate=merge(current,changes); var violations=RequestValidation.validate(candidate); if(!violations.isEmpty()) throw new CarFleetRequestExceptions.Invalid(violations);
+            var candidate=merge(current,changes); var violations=RequestValidation.validate(candidate, changes.keySet()); if(!violations.isEmpty()) throw new CarFleetRequestExceptions.Invalid(violations);
             if ("A".equalsIgnoreCase(string(changes.get("creditCardRequested"))) && (candidate.cardLastFourDigits()==null || candidate.cardLastFourDigits().isBlank()))
                 throw new CarFleetRequestExceptions.Invalid(List.of(new RequestValidation.Violation("creditCardRequested", "E: introducir los últimos dígitos de la tarjeta antes de activar")));
         }
