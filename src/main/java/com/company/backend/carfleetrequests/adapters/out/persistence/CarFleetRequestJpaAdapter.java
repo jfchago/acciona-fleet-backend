@@ -46,7 +46,12 @@ public class CarFleetRequestJpaAdapter implements CarFleetRequestReadPort, CarFl
         long total=visibility==RequestVisibility.ACTIVE?views.countActive(f):views.countAllLegacy(f);
         return new Page(rows.stream().map(this::map).toList(),total);
     }
-    public Optional<CarFleetRequest> findById(Long id,RequestVisibility visibility){return (visibility==RequestVisibility.ACTIVE?views.findActiveById(id):views.findAllLegacyById(id)).map(this::map);}
+    public Optional<CarFleetRequest> findById(Long id,RequestVisibility visibility){
+        var row = visibility == RequestVisibility.ACTIVE
+                ? views.findActiveById(id)
+                : views.findAllLegacyById(id).or(() -> views.findActiveById(id));
+        return row.map(this::map);
+    }
     public boolean existsWithNormalizedSdn(String sdn,Long excludingId){return views.countDuplicateSdn(sdn,excludingId)>0;}
     public Optional<CarFleetRequest> update(Long id,String expectedVersion,Map<String,Object> changes,Integer state,String actor){
         var entity=cars.findForUpdateById(id).orElse(null); if(entity==null || !version(entity).equals(expectedVersion)) return Optional.empty();
