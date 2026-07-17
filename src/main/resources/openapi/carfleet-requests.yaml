@@ -30,6 +30,17 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Validation' }
+  /api/v1/car-fleet-requests/{id}/actions:
+    post:
+      security: [{ bearerAuth: [CARFLEET_REQUESTS_OPERATIONAL_ACTION] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OperationalActionRequest' } } } }
+      responses:
+        '200': { description: Completed local action, content: { application/json: { schema: { $ref: '#/components/schemas/OperationalActionResult' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: Action is not authorized }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '501': { description: External integration is not configured; no success is reported }
   /api/v1/car-fleet-requests/{id}/retire:
     post:
       security: [{ bearerAuth: [CARFLEET_REQUESTS_RETIRE] }]
@@ -77,6 +88,8 @@ components:
     CarFleetRequest: { allOf: [{ $ref: '#/components/schemas/CarFleetRequestPatch' }, { type: object, required: [id, version], properties: { id: { type: integer, format: int64 }, version: { type: string }, retired: { type: boolean }, updatedAt: { type: string, format: date } } }] }
     PageResponse: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/CarFleetRequest' } }, page: { type: integer }, size: { type: integer }, totalElements: { type: integer, format: int64 } } }
     UpdateResponse: { type: object, properties: { item: { $ref: '#/components/schemas/CarFleetRequest' }, warnings: { type: array, items: { type: string } } } }
+    OperationalActionRequest: { type: object, required: [action], additionalProperties: false, properties: { action: { type: string, enum: [DUPLICATE, RETIRE, REINSTATE, FILE_ACCESS, FILE_UPLOAD, EMAIL, EXPORT, DRIVER, EXPENSE, RENTING, SUBSTITUTION, SOLRED, CARD] }, confirmed: { type: boolean, default: false } } }
+    OperationalActionResult: { type: object, required: [action, requestId, status, message], properties: { action: { type: string }, requestId: { type: integer, format: int64 }, status: { type: string, enum: [COMPLETED] }, message: { type: string } } }
     Problem: { type: object, required: [status, title], properties: { status: { type: integer }, title: { type: string }, detail: { type: string }, errors: { type: array, items: { type: object } } } }
   responses:
     BadRequest: { description: Malformed JSON, invalid types, or invalid request parameters, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }

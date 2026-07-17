@@ -44,4 +44,6 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(CarFleetRequestExceptions.DuplicateSdn.class)
     ProblemDetail duplicate(CarFleetRequestExceptions.DuplicateSdn e) { return problem(HttpStatus.UNPROCESSABLE_ENTITY,"Duplicate SDN",e.getMessage()); }
+    @ExceptionHandler(CarFleetRequestExceptions.Unavailable.class)
+    ProblemDetail unavailable(CarFleetRequestExceptions.Unavailable e) { return problem(HttpStatus.NOT_IMPLEMENTED,"Operational action unavailable",e.getMessage()); }
 }

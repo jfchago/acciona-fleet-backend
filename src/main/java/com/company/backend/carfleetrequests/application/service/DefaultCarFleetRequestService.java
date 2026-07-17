@@ -1,6 +1,7 @@
 package com.company.backend.carfleetrequests.application.service;
 
 import com.company.backend.carfleetrequests.application.port.in.CarFleetRequestUseCases;
+import com.company.backend.carfleetrequests.application.port.in.OperationalActionResult;
 import com.company.backend.carfleetrequests.application.port.out.*;
 import com.company.backend.carfleetrequests.domain.*;
 import java.math.BigDecimal;
@@ -50,6 +51,36 @@ public class DefaultCarFleetRequestService implements CarFleetRequestUseCases {
     @Override public CarFleetRequest duplicate(Long id) {
         var user=require(id,CarFleetRequestAuthorizationPort.Action.DUPLICATE);
         return writes.duplicate(id,user.id()).orElseThrow(()->new CarFleetRequestExceptions.NotFound(id));
+    }
+    @Override public OperationalActionResult execute(Long id, OperationalAction action, boolean confirmed) {
+        if (action == null) throw new IllegalArgumentException("action is required");
+        var user = require(id, CarFleetRequestAuthorizationPort.Action.OPERATIONAL_ACTION);
+        var current = reads.findById(id, RequestVisibility.ALL)
+                .orElseThrow(() -> new CarFleetRequestExceptions.NotFound(id));
+        if ((action == OperationalAction.EMAIL || action == OperationalAction.EXPORT) && !confirmed)
+            throw new IllegalArgumentException("confirmation is required for " + action.name().toLowerCase(Locale.ROOT));
+        if ((action == OperationalAction.RETIRE || action == OperationalAction.REINSTATE)
+                && current.retired() && action != OperationalAction.REINSTATE)
+            throw new CarFleetRequestExceptions.Invalid(List.of(new RequestValidation.Violation("state", "action is unavailable for a retired request")));
+        if (action == OperationalAction.DUPLICATE) {
+            require(id, CarFleetRequestAuthorizationPort.Action.DUPLICATE);
+            var copy = writes.duplicate(id, user.id()).orElseThrow(() -> new CarFleetRequestExceptions.NotFound(id));
+            audits.append(id, "DUPLICATE", user.id(), Map.of("resultRequestId", copy.id()));
+            return new OperationalActionResult(action, copy.id(), "COMPLETED", "Request duplicated");
+        }
+        if (action == OperationalAction.RETIRE) {
+            require(id, CarFleetRequestAuthorizationPort.Action.RETIRE);
+            mutate(id, current.version(), changes(CarFleetRequest.CANCELLED_STATE, LocalDate.now()),
+                    CarFleetRequestAuthorizationPort.Action.RETIRE, "RETIRE", user);
+            return new OperationalActionResult(action, id, "COMPLETED", "Request retired");
+        }
+        if (action == OperationalAction.REINSTATE) {
+            require(id, CarFleetRequestAuthorizationPort.Action.REINSTATE);
+            mutate(id, current.version(), changes(CarFleetRequest.ACTIVE_STATE, null),
+                    CarFleetRequestAuthorizationPort.Action.REINSTATE, "REINSTATE", user);
+            return new OperationalActionResult(action, id, "COMPLETED", "Request reinstated");
+        }
+        throw new CarFleetRequestExceptions.Unavailable(action.name());
     }
     private CarFleetRequest mutate(Long id,String version,Map<String,Object> changes,CarFleetRequestAuthorizationPort.Action action,String auditAction) { return mutate(id,version,changes,action,auditAction,require(id,action)); }
     private CarFleetRequest mutate(Long id,String version,Map<String,Object> changes,CarFleetRequestAuthorizationPort.Action action,String auditAction,CurrentUserPort.User user) {
